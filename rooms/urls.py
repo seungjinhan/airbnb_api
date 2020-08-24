@@ -3,13 +3,13 @@ from django.urls import path
 from . import views
 from . import viewsets
 
-router = DefaultRouter()
-router.register("", viewsets.RoomViewset, basename="room")
+# router = DefaultRouter()
+# router.register("", viewsets.RoomViewset, basename="room")
 
 app_name = "rooms"
 
-urlpatterns = router.urls
-# [
-# path("list/", views.ListRoomsView.as_view()),
-# path("<int:pk>/", views.SeeRoomView.as_view())
-# ]
+# urlpatterns = router.urls
+urlpatterns = [
+    path("", views.ListRoomsView.as_view()),
+    path("<int:pk>/", views.SeeRoomView.as_view())
+]

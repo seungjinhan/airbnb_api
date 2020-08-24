@@ -14,7 +14,7 @@ class ListRoomsView(ListAPIView):
 
 class SeeRoomView(RetrieveAPIView):
     queryset = models.Room.objects.all()
-    serializer_class = BigRoomSerializer
+    serializer_class = RoomSerializer
 
     # @api_view(["GET"])
     # def list_rooms(req):
