@@ -10,6 +10,6 @@ app_name = "rooms"
 
 # urlpatterns = router.urls
 urlpatterns = [
-    path("", views.ListRoomsView.as_view()),
+    path("", views.room_view),
     path("<int:pk>/", views.SeeRoomView.as_view())
 ]
