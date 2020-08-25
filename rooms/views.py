@@ -23,7 +23,7 @@ def room_view(req):
             room_serializer = ReadRoomSerializer(room).data
             return Response(status=status.HTTP_200_OK, data=room_serializer)
         else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # class ListRoomsView(ListAPIView):

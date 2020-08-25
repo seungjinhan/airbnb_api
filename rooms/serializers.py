@@ -29,6 +29,21 @@ class WriteRoomSerializer(serializers.Serializer):
     def create(self, validated_data):
         return Room.objects.create(**validated_data)
 
+    def validate(self, data):
+        check_in = data.get('check_in')
+        check_out = data.get('check_out')
+        if check_in == check_out or check_in > check_out:
+            raise serializers.ValidationError(
+                "Not enough time between check in and check out")
+        else:
+            return data
+
+    # def validate_beds(self, value):
+    #     if value < 5:
+    #         raise serializers.ValidationError("Your house is too small")
+    #     else:
+    #         return value
+
 
 class BigRoomSerializer(serializers.ModelSerializer):
 
