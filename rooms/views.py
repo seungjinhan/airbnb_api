@@ -8,51 +8,71 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import RoomSerializer
 
+from rest_framework.viewsets import ModelViewSet
+from rest_framework import permissions
+
+from .permissions import IsOwner
+
+
+class RoomViewSet(ModelViewSet):
+    queryset = models.Room.objects.all()
+    serializer_class = RoomSerializer
+
+    def get_permissions(self):
+        if self.action == "list" or self.action == "retrieve":
+            permission_classes = [permissions.AllowAny]
+        elif self.action == "create":
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            permission_classes = [IsOwner]
+        return [permission() for permission in permission_classes]
+
 
 class OwnPagination(PageNumberPagination):
     page_size = 5
 
 
-@api_view(["GET", "POST"])
-def room_view(req):
-    if req.method == 'GET':
-        rooms = models.Room.objects.all()
-        serializer = RoomSerializer(rooms, many=True).data
-        return Response(data=serializer)
-    elif req.method == 'POST':
-        if not req.user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        serializer = RoomSerializer(data=req.data)
-        if serializer.is_valid():
-            room = serializer.save(user=req.user)
-            room_serializer = RoomSerializer(room).data
-            return Response(status=status.HTTP_200_OK, data=room_serializer)
-        else:
-            return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# @api_view(["GET", "POST"])
+# def room_view(req):
+#     if req.method == 'GET':
+#         rooms = models.Room.objects.all()
+#         serializer = RoomSerializer(
+#             rooms, many=True, context={'req': req}).data
+#         return Response(data=serializer)
+#     elif req.method == 'POST':
+#         if not req.user.is_authenticated:
+#             return Response(status=status.HTTP_401_UNAUTHORIZED)
+#         serializer = RoomSerializer(data=req.data, context={'req': req})
+#         if serializer.is_valid():
+#             room = serializer.save(user=req.user)
+#             room_serializer = RoomSerializer(room).data
+#             return Response(status=status.HTTP_200_OK, data=room_serializer)
+#         else:
+#             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # 위와 동일한 기능
 
 
-class RoomsView(APIView):
+# class RoomsView(APIView):
 
-    def get(self, req):
-        pageinator = OwnPagination()
-        rooms = models.Room.objects.all()
-        results = pageinator.paginate_queryset(rooms, req)
-        serializer = RoomSerializer(results, many=True, context={'req': req})
-        return pageinator.get_paginated_response(serializer.data)
+#     def get(self, req):
+#         pageinator = OwnPagination()
+#         rooms = models.Room.objects.all()
+#         results = pageinator.paginate_queryset(rooms, req)
+#         serializer = RoomSerializer(results, many=True, context={'req': req})
+#         return pageinator.get_paginated_response(serializer.data)
 
-    def post(self, req):
-        if not req.user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        serializer = RoomSerializer(data=req.data)
+#     def post(self, req):
+#         if not req.user.is_authenticated:
+#             return Response(status=status.HTTP_401_UNAUTHORIZED)
+#         serializer = RoomSerializer(data=req.data)
 
-        if serializer.is_valid():
-            room = serializer.save(user=req.user)
-            room_serializer = RoomSerializer(room).data
-            return Response(status=status.HTTP_200_OK, data=room_serializer)
-        else:
-            return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         if serializer.is_valid():
+#             room = serializer.save(user=req.user)
+#             room_serializer = RoomSerializer(room).data
+#             return Response(status=status.HTTP_200_OK, data=room_serializer)
+#         else:
+#             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # class ListRoomsView(ListAPIView):
@@ -60,51 +80,52 @@ class RoomsView(APIView):
 #     serializer_class = RoomSerializer
 
 
-class SeeRoomView(RetrieveAPIView):
-    queryset = models.Room.objects.all()
-    serializer_class = RoomSerializer
+# class SeeRoomView(RetrieveAPIView):
+#     queryset = models.Room.objects.all()
+#     serializer_class = RoomSerializer
 
 
-class RoomView(APIView):
-    def get_room(self, pk):
-        try:
-            room = models.Room.objects.get(pk=pk)
-            return room
-        except models.Room.DoesNotExist:
-            return None
+# class RoomView(APIView):
+#     def get_room(self, pk):
+#         try:
+#             room = models.Room.objects.get(pk=pk)
+#             return room
+#         except models.Room.DoesNotExist:
+#             return None
 
-    def get(self, request, pk):
-        room = self.get_room(pk)
-        if room is not None:
-            serializer = RoomSerializer(room).data
-            return Response(serializer)
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+#     def get(self, request, pk):
+#         room = self.get_room(pk)
+#         if room is not None:
+#             serializer = RoomSerializer(room, context={'req': req}).data
+#             return Response(serializer)
+#         else:
+#             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def put(self, request, pk):
-        room = self.get_room(pk)
-        if room is not None:
-            if room.user != request.user:
-                return Response(status=status.HTTP_403_FORBIDDEN)
-            serializer = RoomSerializer(room, data=request.data, partial=True)
-            if serializer.is_valid():
-                room = serializer.save()
-                return Response(RoomSerializer(room).data)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            return Response()
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+#     def put(self, request, pk):
+#         room = self.get_room(pk)
+#         if room is not None:
+#             if room.user != request.user:
+#                 return Response(status=status.HTTP_403_FORBIDDEN)
+#             serializer = RoomSerializer(
+#                 room, data=request.data, partial=True, context={'req': req})
+#             if serializer.is_valid():
+#                 room = serializer.save()
+#                 return Response(RoomSerializer(room).data)
+#             else:
+#                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#             return Response()
+#         else:
+#             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def delete(self, request, pk):
-        room = self.get_room(pk)
-        if room is not None:
-            if room.user != request.user:
-                return Response(status=status.HTTP_403_FORBIDDEN)
-            room.delete()
-            return Response(status=status.HTTP_200_OK)
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+#     def delete(self, request, pk):
+#         room = self.get_room(pk)
+#         if room is not None:
+#             if room.user != request.user:
+#                 return Response(status=status.HTTP_403_FORBIDDEN)
+#             room.delete()
+#             return Response(status=status.HTTP_200_OK)
+#         else:
+#             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(["GET"])
