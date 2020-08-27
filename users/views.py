@@ -1,3 +1,6 @@
+from django.conf import settings
+import jwt
+from django.contrib.auth import authenticate
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
@@ -69,3 +72,19 @@ def user_detail(req, pk):
         return Response(UserSerializer(user).data)
     except User.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["POST"])
+def login(req):
+    username = req.data.get("username")
+    password = req.data.get("password")
+    if not username or not password:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    user = authenticate(username=username, password=password)
+    if user is not None:
+        user_jwt = jwt.encode(
+            {'pk': user.pk}, settings.SECRET_KEY, algorithm='HS256')
+        return Response(data={'token': user_jwt})
+    else:
+        return Response(status=status.HTTP_401_UNAUTHORIZED)
