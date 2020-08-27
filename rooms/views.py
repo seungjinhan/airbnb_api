@@ -1,17 +1,17 @@
-from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import render
-from . import models
-from rest_framework.decorators import api_view
+
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.decorators import api_view, action
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import RoomSerializer
-
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import permissions
 
+from .serializers import RoomSerializer
 from .permissions import IsOwner
+from . import models
 
 
 class RoomViewSet(ModelViewSet):
@@ -27,9 +27,88 @@ class RoomViewSet(ModelViewSet):
             permission_classes = [IsOwner]
         return [permission() for permission in permission_classes]
 
+    @action(detail=False)
+    def search(self, req):
 
-class OwnPagination(PageNumberPagination):
-    page_size = 5
+        max_price = req.GET.get('max_price', None)
+        min_price = req.GET.get('min_price', None)
+        beds = req.GET.get('beds', None)
+        bedrooms = req.GET.get('bedrooms', None)
+        bathrooms = req.GET.get('bathrooms', None)
+
+        lat = req.GET.get('lat', None)
+        lng = req.GET.get('lgn', None)
+
+        filter_kwargs = {}
+        if max_price is not None:
+            filter_kwargs["price__lte"] = max_price
+        if min_price is not None:
+            filter_kwargs["price__gte"] = min_price
+        if beds is not None:
+            filter_kwargs["beds__gte"] = beds
+        if bedrooms is not None:
+            filter_kwargs["bedrooms__gte"] = bedrooms
+        if bathrooms is not None:
+            filter_kwargs["bathrooms__gte"] = bathrooms
+
+        if lat is not None and lng is not None:
+            filter_kwargs["lat__gte"] = float(lat) - 0.005
+            filter_kwargs["lat__lte"] = float(lat) + 0.005
+            filter_kwargs["lng__gte"] = float(lng) - 0.005
+            filter_kwargs["lng__lte"] = float(lng) + 0.005
+
+        paginator = self.paginator
+        try:
+            rooms = models.Room.objects.filter(**filter_kwargs)
+        except ValueError:
+            rooms = models.Room.objects.all()
+
+        results = paginator.paginate_queryset(rooms, req)
+        serializer = RoomSerializer(results, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
+
+
+# @api_view(["GET"])
+# def room_search(req):
+
+#     max_price = req.GET.get('max_price', None)
+#     min_price = req.GET.get('min_price', None)
+#     beds = req.GET.get('beds', None)
+#     bedrooms = req.GET.get('bedrooms', None)
+#     bathrooms = req.GET.get('bathrooms', None)
+
+#     lat = req.GET.get('lat', None)
+#     lng = req.GET.get('lgn', None)
+
+#     filter_kwargs = {}
+#     if max_price is not None:
+#         filter_kwargs["price__lte"] = max_price
+#     if min_price is not None:
+#         filter_kwargs["price__gte"] = min_price
+#     if beds is not None:
+#         filter_kwargs["beds__gte"] = beds
+#     if bedrooms is not None:
+#         filter_kwargs["bedrooms__gte"] = bedrooms
+#     if bathrooms is not None:
+#         filter_kwargs["bathrooms__gte"] = bathrooms
+
+#     if lat is not None and lng is not None:
+#         filter_kwargs["lat__gte"] = float(lat) - 0.005
+#         filter_kwargs["lat__lte"] = float(lat) + 0.005
+#         filter_kwargs["lng__gte"] = float(lng) - 0.005
+#         filter_kwargs["lng__lte"] = float(lng) + 0.005
+
+#     paginator = OwnPagination()
+#     try:
+#         rooms = models.Room.objects.filter(**filter_kwargs)
+#     except ValueError:
+#         rooms = models.Room.objects.all()
+
+#     results = paginator.paginate_queryset(rooms, req)
+#     serializer = RoomSerializer(results, many=True)
+
+#     return paginator.get_paginated_response(serializer.data)
 
 
 # @api_view(["GET", "POST"])
@@ -126,45 +205,3 @@ class OwnPagination(PageNumberPagination):
 #             return Response(status=status.HTTP_200_OK)
 #         else:
 #             return Response(status=status.HTTP_404_NOT_FOUND)
-
-
-@api_view(["GET"])
-def room_search(req):
-
-    max_price = req.GET.get('max_price', None)
-    min_price = req.GET.get('min_price', None)
-    beds = req.GET.get('beds', None)
-    bedrooms = req.GET.get('bedrooms', None)
-    bathrooms = req.GET.get('bathrooms', None)
-
-    lat = req.GET.get('lat', None)
-    lng = req.GET.get('lgn', None)
-
-    filter_kwargs = {}
-    if max_price is not None:
-        filter_kwargs["price__lte"] = max_price
-    if min_price is not None:
-        filter_kwargs["price__gte"] = min_price
-    if beds is not None:
-        filter_kwargs["beds__gte"] = beds
-    if bedrooms is not None:
-        filter_kwargs["bedrooms__gte"] = bedrooms
-    if bathrooms is not None:
-        filter_kwargs["bathrooms__gte"] = bathrooms
-
-    if lat is not None and lng is not None:
-        filter_kwargs["lat__gte"] = float(lat) - 0.005
-        filter_kwargs["lat__lte"] = float(lat) + 0.005
-        filter_kwargs["lng__gte"] = float(lng) - 0.005
-        filter_kwargs["lng__lte"] = float(lng) + 0.005
-
-    paginator = OwnPagination()
-    try:
-        rooms = models.Room.objects.filter(**filter_kwargs)
-    except ValueError:
-        rooms = models.Room.objects.all()
-
-    results = paginator.paginate_queryset(rooms, req)
-    serializer = RoomSerializer(results, many=True)
-
-    return paginator.get_paginated_response(serializer.data)
